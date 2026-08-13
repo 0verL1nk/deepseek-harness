@@ -130,17 +130,32 @@ jobs:
           echo "DESKTOP_RELEASE_VERSION=$version" >> "$GITHUB_ENV"
       - name: Verify Electron package configuration
         run: pnpm run desktop:verify
+      - name: Configure macOS signing
+        if: matrix.os == 'macos-14'
+        shell: bash
+        env:
+          DESKTOP_CSC_LINK: ${{ secrets.DESKTOP_CSC_LINK }}
+          DESKTOP_CSC_KEY_PASSWORD: ${{ secrets.DESKTOP_CSC_KEY_PASSWORD }}
+          DESKTOP_APPLE_ID: ${{ secrets.DESKTOP_APPLE_ID }}
+          DESKTOP_APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.DESKTOP_APPLE_APP_SPECIFIC_PASSWORD }}
+          DESKTOP_APPLE_TEAM_ID: ${{ secrets.DESKTOP_APPLE_TEAM_ID }}
+        run: |
+          # Do not export empty CSC_LINK: electron-builder treats even an empty
+          # value as a certificate path and attempts to sign the app directory.
+          if [[ -z "$DESKTOP_CSC_LINK" ]]; then
+            exit 0
+          fi
+          {
+            echo "CSC_LINK=$DESKTOP_CSC_LINK"
+            echo "CSC_KEY_PASSWORD=$DESKTOP_CSC_KEY_PASSWORD"
+            echo "APPLE_ID=$DESKTOP_APPLE_ID"
+            echo "APPLE_APP_SPECIFIC_PASSWORD=$DESKTOP_APPLE_APP_SPECIFIC_PASSWORD"
+            echo "APPLE_TEAM_ID=$DESKTOP_APPLE_TEAM_ID"
+          } >> "$GITHUB_ENV"
       - name: Build native distributables
         env:
           DESKTOP_RELEASE_OWNER: ${{ github.repository_owner }}
           DESKTOP_RELEASE_REPOSITORY: ${{ github.event.repository.name }}
-          # electron-builder signs when these repository secrets are present;
-          # unconfigured forks still produce testable unsigned artifacts.
-          CSC_LINK: ${{ secrets.DESKTOP_CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.DESKTOP_CSC_KEY_PASSWORD }}
-          APPLE_ID: ${{ secrets.DESKTOP_APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.DESKTOP_APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.DESKTOP_APPLE_TEAM_ID }}
         run: pnpm --filter @deepseek-ai/dsh-desktop exec electron-builder --config electron-builder.config.mjs ${{ matrix.electron_args }}
       - name: Report distributable sizes
         shell: pwsh
