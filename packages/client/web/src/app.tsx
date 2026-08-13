@@ -8,9 +8,17 @@
 import type { ReactNode } from 'react'
 import type { Context } from '@deepseek-ai/cordis'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
+import type { Translate } from '@deepseek-ai/dsh-client-ui-slots'
 import { DocumentTitle } from './DocumentTitle.tsx'
+import { DesktopTitleBar } from './DesktopTitleBar.tsx'
+import desktopCss from './DesktopTitleBar.module.css'
 // Type-only: pulls the runtime's SlotMap declaration merge (the 'root' key) into this program.
 import type {} from '@deepseek-ai/dsh-client-runtime/client'
+
+/** Minimal locale face used by the shell-owned desktop title bar. */
+interface DesktopLocale {
+  bind(namespace: string): Translate<'window.minimize' | 'window.maximize' | 'close'>
+}
 
 /** Assembly inputs: the active app-shell plugin ctx (slots/sessions/layout services provided). */
 export interface AssemblyDeps {
@@ -27,6 +35,9 @@ export function buildRenderApp(deps: AssemblyDeps): () => ReactNode {
   const { ctx } = deps
   const sessions = ctx.get('sessions')
   if (sessions === undefined) throw new Error('shell assembly: sessions service unavailable')
+  const locale = ctx.get('locale') as DesktopLocale | undefined
+  if (locale === undefined) throw new Error('shell assembly: locale service unavailable')
+  const t = locale.bind('common')
   const useSessions = bindSnapshotSelector(sessions.list)
   const SessionDocumentTitle = (): ReactNode => {
     const title = useSessions((state) => {
@@ -36,9 +47,12 @@ export function buildRenderApp(deps: AssemblyDeps): () => ReactNode {
     return <DocumentTitle {...title === undefined ? {} : { title }} />
   }
   return () => (
-    <>
-      <SessionDocumentTitle />
-      {ctx.slots.renderSlot('root', {})}
-    </>
+    <div className={desktopCss.root}>
+      <DesktopTitleBar t={t} />
+      <div className={desktopCss.content}>
+        <SessionDocumentTitle />
+        {ctx.slots.renderSlot('root', {})}
+      </div>
+    </div>
   )
 }

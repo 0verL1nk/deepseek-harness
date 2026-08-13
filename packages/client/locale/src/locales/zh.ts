@@ -24,6 +24,8 @@ export const zh = {
   'unknown': '未知',
   'none': '无',
   'truncated': '已截断',
+  'window.minimize': '最小化窗口',
+  'window.maximize': '最大化窗口',
 } satisfies Record<string, string>
 
 /** The common vocabulary key union (zh is the key-set source of truth). */

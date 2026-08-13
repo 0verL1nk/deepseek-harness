@@ -1,0 +1,25 @@
+{
+  "name": "@deepseek-ai/dsh-desktop",
+  "description": "DeepSeek Harness desktop application: an Electron shell over the local dsh web profile",
+  "version": "0.1.0-rc.5",
+  "private": true,
+  "type": "module",
+  "main": "lib/main.js",
+  "license": "MIT",
+  "author": "DeepSeek AI",
+  "scripts": {
+    "package": "electron-builder --dir",
+    "make": "electron-builder",
+    "verify": "node ./scripts/verify-desktop.mjs"
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh": "workspace:^",
+    "electron-updater": "^6.7.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "electron": "43.2.0",
+    "electron-builder": "^26.0.12",
+    "typescript": "^6.0.3"
+  }
+}

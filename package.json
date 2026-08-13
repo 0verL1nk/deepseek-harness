@@ -139,6 +139,9 @@
     "demo:acp": "node --import tsx packages/examples/acp-demo/src/bin.ts --config examples/acp-agent/cordis.yml",
     "mock:llm": "node --import tsx packages/test-support/llm-mock-server/src/bin.ts",
     "dev:web": "tsx scripts/dev-web.ts --poll",
+    "desktop:make": "pnpm run build && pnpm --filter @deepseek-ai/dsh-desktop run make",
+    "desktop:package": "pnpm run build && pnpm --filter @deepseek-ai/dsh-desktop run package",
+    "desktop:verify": "pnpm --filter @deepseek-ai/dsh-desktop run verify",
     "postinstall": "node scripts/install-lefthook.mjs"
   },
   "devDependencies": {
@@ -174,6 +177,7 @@
     "smol-toml": "^1.7.1",
     "spdx-expression-parse": "^5.0.0",
     "tsdown": "^0.22.2",
+    "unrun": "^0.3.0",
     "tsx": "^4.22.4",
     "typescript": "^6.0.3",
     "vite-tsconfig-paths": "^6.1.1",

@@ -1,0 +1,141 @@
+# Build the Electron distribution on the operating system it targets. A local
+# package check runs for every pull request; signed installers and archives
+# publish only from a dsh release tag.
+name: Desktop
+
+on:
+  pull_request:
+    paths:
+      - 'apps/desktop/**'
+      - 'apps/cli/**'
+      - 'apps/web/**'
+      - 'packages/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'tsconfig*.json'
+      - 'tsdown.config.ts'
+      - '.github/workflows/desktop.yml'
+  push:
+    tags: ['dsh-v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  PRIMARY_NODE_VERSION: '24'
+  DSH_TELEMETRY_DISABLED: '1'
+
+jobs:
+  check:
+    name: Desktop package check
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          dest: ${{ runner.temp }}/setup-pnpm
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.PRIMARY_NODE_VERSION }}
+          cache: pnpm
+      - name: Install (immutable)
+        run: pnpm install --frozen-lockfile
+      - name: Build desktop inputs
+        run: pnpm run build
+      - name: Verify Electron package configuration
+        run: pnpm run desktop:verify
+      - name: Package Linux application directory
+        run: pnpm run desktop:package
+
+  build:
+    name: ${{ matrix.name }}
+    if: github.event_name != 'pull_request'
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS universal
+            runner: macos-14
+            electron_args: --mac --universal --publish never
+          - name: Windows x64
+            runner: windows-2025
+            electron_args: --win --x64 --publish never
+          - name: Linux x64
+            runner: ubuntu-24.04
+            electron_args: --linux --x64 --publish never
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          dest: ${{ runner.temp }}/setup-pnpm
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.PRIMARY_NODE_VERSION }}
+          cache: pnpm
+      - name: Install MSVC Spectre libraries
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $installationPath = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\setup.exe" modify --installPath $installationPath --add Microsoft.VisualStudio.Component.VC.Runtimes.x86.x64.Spectre --quiet --wait --norestart
+      - name: Install (immutable)
+        run: pnpm install --frozen-lockfile
+      - name: Build desktop inputs
+        run: pnpm run build
+      - name: Verify Electron package configuration
+        run: pnpm run desktop:verify
+      - name: Build native distributables
+        env:
+          DESKTOP_RELEASE_OWNER: ${{ github.repository_owner }}
+          DESKTOP_RELEASE_REPOSITORY: ${{ github.event.repository.name }}
+          # electron-builder signs when these repository secrets are present;
+          # unconfigured forks still produce testable unsigned artifacts.
+          CSC_LINK: ${{ secrets.DESKTOP_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.DESKTOP_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.DESKTOP_APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.DESKTOP_APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.DESKTOP_APPLE_TEAM_ID }}
+        run: pnpm --filter @deepseek-ai/dsh-desktop exec electron-builder ${{ matrix.electron_args }}
+      - name: Report distributable sizes
+        shell: pwsh
+        run: Get-ChildItem apps/desktop/dist -File | Sort-Object Length -Descending | Select-Object Name, @{ Name = 'MiB'; Expression = { [math]::Round($_.Length / 1MB, 1) } } | Format-Table -AutoSize
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dsh-desktop-${{ matrix.name }}
+          path: apps/desktop/dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+  release:
+    name: Publish desktop release assets
+    if: startsWith(github.ref, 'refs/tags/dsh-v')
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: dsh-desktop-*
+          path: dist/desktop
+          merge-multiple: true
+      - name: Create or update the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --generate-notes --title "$TAG"
+          gh release upload "$TAG" dist/desktop/* --clobber
