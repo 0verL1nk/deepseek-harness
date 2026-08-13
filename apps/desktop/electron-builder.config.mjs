@@ -47,7 +47,7 @@ export default {
     icon: '../web/public/favicon.svg',
     // pnpm retains Sharp's optional native packages in both architecture trees.
     // These files are architecture-specific and must remain unmerged.
-    x64ArchFiles: 'node_modules/@img/**',
+    x64ArchFiles: 'Contents/Resources/app.asar.unpacked/node_modules/@img/**',
   },
   win: {
     target: ['nsis'],
@@ -57,6 +57,7 @@ export default {
     target: ['AppImage', 'deb'],
     category: 'Development',
     icon: '../web/public/favicon.svg',
+    maintainer: 'DeepSeek AI <support@deepseek.com>',
   },
   nsis: {
     oneClick: false,
