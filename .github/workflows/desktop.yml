@@ -95,6 +95,13 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Build desktop inputs
         run: pnpm run build
+      - name: Resolve desktop release version
+        if: startsWith(github.ref, 'refs/tags/dsh-v')
+        shell: bash
+        run: |
+          version="${GITHUB_REF_NAME#dsh-v}"
+          VERSION="$version" node -e "if (!/^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-(?:0|[1-9]\\d*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9]\\d*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*))*)?$/.test(process.env.VERSION)) process.exitCode = 1"
+          echo "DESKTOP_RELEASE_VERSION=$version" >> "$GITHUB_ENV"
       - name: Verify Electron package configuration
         run: pnpm run desktop:verify
       - name: Build native distributables

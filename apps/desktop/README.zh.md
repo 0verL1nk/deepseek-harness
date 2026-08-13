@@ -14,7 +14,7 @@ DeepSeek Harness 桌面应用。Electron 在隔离的本地子进程中承载现
 
 ## 分发
 
-在执行 `pnpm run build` 后，`pnpm run desktop:package` 会构建未打包的本地应用。`pnpm run desktop:make` 会生成平台分发包：macOS DMG 和 ZIP、Windows NSIS、Linux AppImage 和 DEB。[Desktop 工作流](../../.github/workflows/desktop.yml) 会从 `dsh-v*` 标签为 macOS Intel、macOS Apple Silicon、Windows x64 和 Linux x64 构建原生制品，并把它们附加到对应的 GitHub Release。
+在执行 `pnpm run build` 后，`pnpm run desktop:package` 会构建未打包的本地应用。`pnpm run desktop:make` 会生成平台分发包：macOS DMG 和 ZIP、Windows NSIS、Linux AppImage 和 DEB。[Desktop 工作流](../../.github/workflows/desktop.yml) 会从 `dsh-vX.Y.Z` 标签为 macOS universal、Windows x64 和 Linux x64 构建原生制品，并把它们附加到对应的 GitHub Release。它会从标签派生标准 SemVer `X.Y.Z`（可带预发布后缀）作为安装应用版本。
 
 发布工作流支持使用 `DESKTOP_CSC_LINK`、`DESKTOP_CSC_KEY_PASSWORD`、`DESKTOP_APPLE_ID`、`DESKTOP_APPLE_APP_SPECIFIC_PASSWORD` 和 `DESKTOP_APPLE_TEAM_ID` GitHub secrets 进行签名和 macOS 公证。它会在构建时把当前 GitHub 仓库 owner 和名称注入更新元数据，因此 fork 发布的版本会检查该 fork 的 GitHub Release。macOS 自动更新需要已签名的构建。
 

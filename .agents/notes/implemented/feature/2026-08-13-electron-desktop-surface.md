@@ -16,6 +16,8 @@ The package keeps only English and Simplified Chinese Electron locale data, pack
 
 The release workflow injects the current GitHub repository owner and name into electron-builder's GitHub provider configuration. A distribution therefore checks updates from the release repository that produced it instead of a source-controlled fixed owner.
 
+The dsh release family owns the `dsh-vX.Y.Z` tag namespace. Tag-triggered desktop builds derive and inject `X.Y.Z` (with an optional SemVer prerelease suffix) as the installed application version, so updater comparisons use the same standard version as the release family.
+
 The custom title bar and tray keep a closed window available until the user selects Quit. Updates use `electron-updater` with the GitHub provider: release artifacts include updater metadata, users approve downloads, progress appears in taskbar and tray, and a ready update offers restart installation or installation on normal quit.
 
 The Desktop workflow builds native macOS Intel, macOS Apple Silicon, Windows x64, and Linux x64 artifacts from `dsh-v*` tags, uploads every installer and updater metadata file to the tag's GitHub Release, and accepts signing and notarization secrets only in release jobs.

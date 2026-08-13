@@ -14,7 +14,7 @@ Browser title-bar text comes from the shared client locale service. Native menus
 
 ## Distribution
 
-`pnpm run desktop:package` builds an unpacked local application after `pnpm run build`. `pnpm run desktop:make` produces the platform distribution: macOS DMG and ZIP, Windows NSIS, and Linux AppImage and DEB. The [Desktop workflow](../../.github/workflows/desktop.yml) builds native artifacts for macOS Intel, macOS Apple Silicon, Windows x64, and Linux x64 from `dsh-v*` tags and attaches them to the corresponding GitHub Release.
+`pnpm run desktop:package` builds an unpacked local application after `pnpm run build`. `pnpm run desktop:make` produces the platform distribution: macOS DMG and ZIP, Windows NSIS, and Linux AppImage and DEB. The [Desktop workflow](../../.github/workflows/desktop.yml) builds native artifacts for macOS universal, Windows x64, and Linux x64 from `dsh-vX.Y.Z` tags and attaches them to the corresponding GitHub Release. It derives the installed application version as standard SemVer `X.Y.Z` (including an optional prerelease suffix) from that tag.
 
 The release workflow accepts `DESKTOP_CSC_LINK`, `DESKTOP_CSC_KEY_PASSWORD`, `DESKTOP_APPLE_ID`, `DESKTOP_APPLE_APP_SPECIFIC_PASSWORD`, and `DESKTOP_APPLE_TEAM_ID` GitHub secrets for signing and macOS notarization. It injects the current GitHub repository owner and name into the updater metadata at build time, so a forked release checks that fork's GitHub Release. macOS auto-update requires a signed build.
 

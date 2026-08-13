@@ -16,6 +16,8 @@ Status: implemented
 
 发布工作流会将当前 GitHub 仓库 owner 和名称注入 electron-builder 的 GitHub provider 配置。因此，发行版会从实际生成该发行版的 Release 仓库检查更新，而不是使用源码中固定的 owner。
 
+dsh 发布族拥有 `dsh-vX.Y.Z` 标签命名空间。标签触发的桌面构建会派生并注入 `X.Y.Z`（可带 SemVer 预发布后缀）作为安装应用版本，因此更新比较使用与发布族相同的标准版本。
+
 自定义标题栏和托盘会让关闭的窗口保持可用，直到用户选择退出。更新使用 GitHub provider 的 `electron-updater`：发布制品包含更新元数据，用户批准下载，进度显示在任务栏和托盘中，准备好的更新可选择重启安装或在正常退出时安装。
 
 Desktop 工作流从 `dsh-v*` 标签构建 macOS Intel、macOS Apple Silicon、Windows x64 和 Linux x64 原生制品，将每个安装包和更新元数据上传到该标签的 GitHub Release，并且只在发布任务中接受签名和公证 secrets。
