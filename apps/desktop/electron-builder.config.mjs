@@ -17,6 +17,7 @@ export default {
   appId: 'ai.deepseek.harness',
   productName: 'DeepSeek Harness',
   executableName: 'deepseek-harness',
+  artifactName: 'DeepSeek-Harness-${version}-${os}-${arch}.${ext}',
   extraMetadata: { version },
   asar: true,
   extraResources: [{
