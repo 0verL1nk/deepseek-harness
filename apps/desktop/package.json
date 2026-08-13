@@ -7,6 +7,7 @@
   "main": "lib/main.js",
   "license": "MIT",
   "author": "DeepSeek AI",
+  "homepage": "https://github.com/0verL1nk/deepseek-harness",
   "scripts": {
     "package": "electron-builder --config electron-builder.config.mjs --dir",
     "make": "electron-builder --config electron-builder.config.mjs",

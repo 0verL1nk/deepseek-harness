@@ -19,6 +19,10 @@ export default {
   executableName: 'deepseek-harness',
   extraMetadata: { version },
   asar: true,
+  extraResources: [{
+    from: '../web/public/favicon.svg',
+    to: 'favicon.svg',
+  }],
   electronLanguages: ['en-US', 'zh-CN'],
   npmRebuild: true,
   publish: [{
@@ -40,14 +44,19 @@ export default {
   mac: {
     target: ['dmg', 'zip'],
     category: 'public.app-category.developer-tools',
+    icon: '../web/public/favicon.svg',
     // pnpm retains Sharp's optional native packages in both architecture trees.
     // These files are architecture-specific and must remain unmerged.
     x64ArchFiles: 'node_modules/@img/**',
   },
-  win: { target: ['nsis'] },
+  win: {
+    target: ['nsis'],
+    icon: '../web/public/favicon.svg',
+  },
   linux: {
     target: ['AppImage', 'deb'],
     category: 'Development',
+    icon: '../web/public/favicon.svg',
   },
   nsis: {
     oneClick: false,

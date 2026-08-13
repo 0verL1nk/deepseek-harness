@@ -3,9 +3,11 @@
  * @module @deepseek-ai/dsh-desktop/updates
  */
 
+import { createRequire } from 'node:module'
 import { BrowserWindow, dialog, Tray, type MessageBoxOptions, type MessageBoxReturnValue } from 'electron'
-import { autoUpdater } from 'electron-updater'
 import { desktopCopy } from './i18n.ts'
+
+const { autoUpdater } = createRequire(import.meta.url)('electron-updater') as typeof import('electron-updater')
 
 const UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1_000
 

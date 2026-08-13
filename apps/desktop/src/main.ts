@@ -4,6 +4,7 @@
  */
 
 import { fork, type ChildProcess } from 'node:child_process'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { app, BrowserWindow, ipcMain, Menu, nativeImage, session, Tray } from 'electron'
 import { startAutomaticUpdates } from './updates.ts'
@@ -38,9 +39,12 @@ function preloadEntry(): string {
   return fileURLToPath(new URL('./preload.js', import.meta.url))
 }
 
-/** One monochrome application mark that remains legible in system trays. */
+/** Load the project favicon from the packaged resources or the web application source. */
 function trayIcon() {
-  const image = nativeImage.createFromDataURL('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNiAxNiI+PHBhdGggZmlsbD0iI2ZmZiIgZD0iTTIgMmwxMiA2LTYgNnoiLz48cGF0aCBmaWxsPSIjZmZmIiBkPSJNNiA4bDggNkgydi02eiIvPjwvc3ZnPg==')
+  const path = app.isPackaged
+    ? join(process.resourcesPath, 'favicon.svg')
+    : fileURLToPath(new URL('../../web/public/favicon.svg', import.meta.url))
+  const image = nativeImage.createFromPath(path)
   if (process.platform === 'darwin') image.setTemplateImage(true)
   return image
 }
