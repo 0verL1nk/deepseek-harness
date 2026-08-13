@@ -45,9 +45,10 @@ export default {
     target: ['dmg', 'zip'],
     category: 'public.app-category.developer-tools',
     icon: '../web/public/favicon.svg',
-    // pnpm retains Sharp's optional native packages in both architecture trees.
-    // These files are architecture-specific and must remain unmerged.
-    x64ArchFiles: 'Contents/Resources/app.asar.unpacked/node_modules/@img/**',
+    // pnpm retains optional prebuilt native packages for both architectures.
+    // @electron/universal still lipo-merges bytes that differ; this allows only
+    // identical module artifacts (including unused opposite-arch packages) through.
+    x64ArchFiles: 'Contents/Resources/app.asar.unpacked/node_modules/**',
   },
   win: {
     target: ['nsis'],
