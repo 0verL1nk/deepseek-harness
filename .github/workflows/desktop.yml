@@ -48,6 +48,14 @@ jobs:
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
           cache: pnpm
+      - name: Restore Electron cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+          key: desktop-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: desktop-${{ runner.os }}-
       - name: Install (immutable)
         run: pnpm install --frozen-lockfile
       - name: Build desktop inputs
@@ -85,6 +93,24 @@ jobs:
         with:
           node-version: ${{ env.PRIMARY_NODE_VERSION }}
           cache: pnpm
+      - name: Restore Electron cache
+        if: runner.os != 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+          key: desktop-${{ runner.os }}-${{ matrix.name }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: desktop-${{ runner.os }}-${{ matrix.name }}-
+      - name: Restore Electron cache
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\AppData\Local\electron\Cache
+            ~\AppData\Local\electron-builder\Cache
+          key: desktop-${{ runner.os }}-${{ matrix.name }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: desktop-${{ runner.os }}-${{ matrix.name }}-
       - name: Install MSVC Spectre libraries
         if: runner.os == 'Windows'
         shell: pwsh
