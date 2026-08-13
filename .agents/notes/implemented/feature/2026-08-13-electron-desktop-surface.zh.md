@@ -1,8 +1,8 @@
 # Agent Note: Electron desktop surface
 
-[English](2026-08-13-electron-desktop-surface.md) | 中文
-
 Status: implemented
+
+[English](2026-08-13-electron-desktop-surface.md) | 中文
 
 ## 问题
 
