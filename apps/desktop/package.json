@@ -8,8 +8,8 @@
   "license": "MIT",
   "author": "DeepSeek AI",
   "scripts": {
-    "package": "electron-builder --dir",
-    "make": "electron-builder",
+    "package": "electron-builder --config electron-builder.config.mjs --dir",
+    "make": "electron-builder --config electron-builder.config.mjs",
     "verify": "node ./scripts/verify-desktop.mjs"
   },
   "dependencies": {

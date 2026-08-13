@@ -141,7 +141,7 @@ jobs:
           APPLE_ID: ${{ secrets.DESKTOP_APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.DESKTOP_APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.DESKTOP_APPLE_TEAM_ID }}
-        run: pnpm --filter @deepseek-ai/dsh-desktop exec electron-builder ${{ matrix.electron_args }}
+        run: pnpm --filter @deepseek-ai/dsh-desktop run make -- ${{ matrix.electron_args }}
       - name: Report distributable sizes
         shell: pwsh
         run: Get-ChildItem apps/desktop/dist -File | Sort-Object Length -Descending | Select-Object Name, @{ Name = 'MiB'; Expression = { [math]::Round($_.Length / 1MB, 1) } } | Format-Table -AutoSize

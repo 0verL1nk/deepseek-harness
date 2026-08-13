@@ -42,7 +42,7 @@ export default {
     category: 'public.app-category.developer-tools',
     // pnpm retains Sharp's optional native packages in both architecture trees.
     // These files are architecture-specific and must remain unmerged.
-    x64ArchFiles: '**/node_modules/@img/**',
+    x64ArchFiles: 'node_modules/@img/**',
   },
   win: { target: ['nsis'] },
   linux: {
