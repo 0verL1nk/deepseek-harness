@@ -704,6 +704,17 @@
         "tests/**/*.ts"
       ]
     },
+    "apps/desktop": {
+      "entry": [
+        "electron-builder.config.mjs",
+        "src/*.ts",
+        "scripts/**/*.mjs"
+      ],
+      "project": [
+        "src/**/*.ts",
+        "scripts/**/*.mjs"
+      ]
+    },
     "apps/web": {
       "entry": [
         "tests/**/*.e2e.ts",
