@@ -167,7 +167,7 @@ async function startOrShowWindow(): Promise<void> {
 
 app.enableSandbox()
 
-app.whenReady().then(async () => {
+void app.whenReady().then(async () => {
   session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => { callback(false) })
   ipcMain.handle('desktop-window', (event, action: unknown) => {
     if (event.sender.id !== mainWindow?.webContents.id || typeof action !== 'string') return

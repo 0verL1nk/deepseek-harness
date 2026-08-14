@@ -12,7 +12,7 @@ Status: implemented
 
 ## 决策
 
-[CI](../../../../.github/workflows/ci.yml) 在上游仓库中将三项必需的主 Node 24 作业路由到 16 核 Linux larger runner，将诊断性的原生 Windows 作业路由到 16 核 Windows larger runner。fork 无法访问这些仅限上游的标签，因此相同作业会使用标准 `ubuntu-24.04` 和 `windows-2025` 运行器。显式的自托管故障转移变量仍是上游仓库的最高优先级选择器。必需的 Windows 作业在标准 `ubuntu-latest` 上通过 Wine 运行 Windows Node，覆盖阻断性检查范围；独立的原生 Windows 作业不参与聚合流程（[双 Windows 决策](2026-08-08-native-windows-pull-request-ci.md)）。标准托管作业保留 Node 兼容性、Python SDK 单元测试套件与[发布形态的 Linux x64 Python 运行时验证](../testing/2026-08-12-required-python-runtime-pull-request-ci.md)，串行参考流程仍是完整且未分片的跨平台定义。
+[CI](../../../../.github/workflows/ci.yml) 在上游仓库中将三项必需的主 Node 24 作业路由到 16 核 Linux larger runner，将诊断性的原生 Windows 作业路由到 16 核 Windows larger runner。fork 无法访问这些仅限上游的标签，因此相同作业会使用标准 `ubuntu-24.04` 和 `windows-2025` 运行器。fork 作业会降低 gate、工具、coverage 和 snapshot 并发度以适配标准四核运行器；它们运行相同检查，而不是丢弃证据。显式的自托管故障转移变量仍是上游仓库的最高优先级选择器。必需的 Windows 作业在标准 `ubuntu-latest` 上通过 Wine 运行 Windows Node，覆盖阻断性检查范围；独立的原生 Windows 作业不参与聚合流程（[双 Windows 决策](2026-08-08-native-windows-pull-request-ci.md)）。标准托管作业保留 Node 兼容性、Python SDK 单元测试套件与[发布形态的 Linux x64 Python 运行时验证](../testing/2026-08-12-required-python-runtime-pull-request-ci.md)，串行参考流程仍是完整且未分片的跨平台定义。
 
 三项 Linux 主作业、Node 兼容性、Python SDK 单元测试套件、Python 运行时验证和 `windows node 24 / wine blocking` 继续作为 `all checks passed` 的依赖项；`windows node 24 / native complete` 被刻意排除。分支保护继续要求 `e2e` 和 `all checks passed`。fork 运行不得指向上游专属标签，因此其必需检查能够在标准托管容量上启动并产生相同证据。
 

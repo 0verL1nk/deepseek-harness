@@ -127,12 +127,16 @@ jobs:
           || 'ubuntu-24.04' }}
     name: node 24 / coverage
     env:
-      # The hosted 16-core runner uses six coverage workers. The failover pool
-      # shares one 64-core VM across six always-on runner instances, so each
-      # instance may use eight while keeping the worst case at 8 × 6 = 48
-      # workers; process-bound suites remain isolated in forks.
-      DSH_COVERAGE_MAX_WORKERS: ${{ vars.DSH_CI_FAILOVER_LINUX == 'selfhosted' && github.event.pull_request.user.login != 'dependabot[bot]' && '8' || '6' }}
-      DSH_GATE_CONCURRENCY: '3'
+      # Forks use standard four-core runners, so their process-bound suite
+      # needs lower parallelism than the upstream larger and failover pools.
+      DSH_COVERAGE_MAX_WORKERS: >-
+        ${{ vars.DSH_CI_FAILOVER_LINUX == 'selfhosted' && github.event.pull_request.user.login != 'dependabot[bot]' && '8'
+            || github.repository == 'deepseek-harness/deepseek-harness' && '6'
+            || '2' }}
+      DSH_GATE_CONCURRENCY: >-
+        ${{ (vars.DSH_CI_FAILOVER_LINUX == 'selfhosted' && github.event.pull_request.user.login != 'dependabot[bot]'
+            || github.repository == 'deepseek-harness/deepseek-harness') && '3'
+            || '1' }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -192,12 +196,21 @@ jobs:
           || 'ubuntu-24.04' }}
     name: node 24 / snapshots and artifacts
     env:
-      DSH_GATE_CONCURRENCY: '8'
+      DSH_GATE_CONCURRENCY: >-
+        ${{ (vars.DSH_CI_FAILOVER_LINUX == 'selfhosted' && github.event.pull_request.user.login != 'dependabot[bot]'
+            || github.repository == 'deepseek-harness/deepseek-harness') && '8'
+            || '2' }}
       DSH_NODE_COMPAT_SKIP_TYPECHECK: '1'
-      DSH_OXLINT_THREADS: '8'
-      DSH_PUBLINT_CONCURRENCY: '8'
-      # Failover halves snapshot concurrency for the shared 64-core VM.
-      DSH_SNAPSHOT_MAX_CONCURRENCY: ${{ vars.DSH_CI_FAILOVER_LINUX == 'selfhosted' && github.event.pull_request.user.login != 'dependabot[bot]' && '12' || '32' }}
+      DSH_OXLINT_THREADS: >-
+        ${{ github.repository == 'deepseek-harness/deepseek-harness' && '8' || '2' }}
+      DSH_PUBLINT_CONCURRENCY: >-
+        ${{ github.repository == 'deepseek-harness/deepseek-harness' && '8' || '2' }}
+      # Failover halves snapshot concurrency for the shared 64-core VM; forks
+      # use a bounded value suitable for standard four-core runners.
+      DSH_SNAPSHOT_MAX_CONCURRENCY: >-
+        ${{ vars.DSH_CI_FAILOVER_LINUX == 'selfhosted' && github.event.pull_request.user.login != 'dependabot[bot]' && '12'
+            || github.repository == 'deepseek-harness/deepseek-harness' && '32'
+            || '4' }}
     steps:
       - uses: actions/checkout@v6
         with:

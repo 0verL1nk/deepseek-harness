@@ -29,7 +29,8 @@ try {
     patchFiles: [],
     args: ['--host', '127.0.0.1', '--port', '0'],
   })
-  const port = ctx.get('webServer')?.port
+  const webServer = ctx.get('webServer') as { port: number } | undefined
+  const port = webServer?.port
   if (port === undefined) throw new Error('desktop backend started without a webServer service')
   report({ type: 'ready', port })
 } catch (error) {

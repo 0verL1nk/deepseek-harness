@@ -23,7 +23,7 @@ afterEach(async () => {
 async function bench() {
   runtime = await SlotTestRuntime.create()
   await runtime.root.declare({}, () => <div data-testid="frame" />)
-  runtime.provide('locale', { bind: () => (key: string) => key } as never)
+  runtime.provide('locale', { bind: () => (key: string) => key })
   return { runtime, renderApp: buildRenderApp({ ctx: runtime.ctx }) }
 }
 
