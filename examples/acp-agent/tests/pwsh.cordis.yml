@@ -33,3 +33,6 @@
 
 - id: tool-pwsh
   name: '@deepseek-ai/dsh-tool-pwsh'
+  # The base bundle disables this entry off Windows; the overlay runs the
+  # pwsh scenario wherever a pwsh binary exists.
+  disabled: false
