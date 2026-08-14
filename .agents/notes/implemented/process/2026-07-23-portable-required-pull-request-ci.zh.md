@@ -32,4 +32,4 @@ Status: implemented
 
 上游拉取请求会将企业级运行器容量用于 Linux 关键路径，fork 则在标准托管容量上运行相同约定。Wine 作业让必需的 Windows 判定继续使用标准 Linux 运行器容量。独立原生作业遵循同一上游或 fork 选择器，不会延迟或改变聚合流程。一次针对确切分支头的实际运行会区分分支保护采用的命令与单独的诊断约定；排队延迟与每个作业从 `startedAt` 到 `completedAt` 的执行区间分开报告。
 
-企业级运行器分配能力下降时，上游仍可使用自托管故障转移。fork 不再依赖其无法使用的上游运行器定义。标准兼容性作业、必需的 Wine 作业与诊断性原生 Windows 作业在企业容量退化时仍能提供有用证据。
+企业级运行器分配能力下降时，上游仍可使用自托管故障转移。fork 不再依赖其无法使用的上游运行器定义。标准兼容性作业、必需的 Wine 作业与诊断性原生 Windows 作业在企业容量退化时仍能提供有用证据。标准 `ubuntu-24.04` 镜像自带 `pwsh` 可执行文件，因此 fork 会运行没有 `pwsh` 的主机所跳过的 `pwshOnly` ACP 快照场景；acp 的 pwsh overlay 必须显式启用 `tool-pwsh`（基础补丁在 Windows 之外禁用该条目），其固定的工具 schema 采用当前 `dsh-tool-jobs` 措辞。fork 中以 master 为作用域的 Wine apt 缓存要等其 master 下一次推送后才会有内容，因此 Wine 作业的超时必须覆盖无缓存的 apt 安装。

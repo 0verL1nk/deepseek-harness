@@ -360,7 +360,10 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     name: windows node 24 / wine blocking
-    timeout-minutes: 15
+    # Standard fork runners install Wine from scratch (the master-scoped apt
+    # cache is empty until this fork's master next pushes) and the uncached
+    # install exceeded 15 minutes; 30 covers the observed slow path.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
         with:
