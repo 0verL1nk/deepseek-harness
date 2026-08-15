@@ -2,6 +2,8 @@
 
 Status: implemented
 
+English | [中文](2026-08-15-ci-tiering-fast-pull-requests.zh.md)
+
 ## Problem
 
 On standard four-core fork runners the CI workflow's pull-request wall time reached ~22 minutes. The heaviest jobs were never sized for that hardware: the native Windows complete inventory (21.6 min at gate concurrency 2), per-file-100% coverage (15.9 min), and the consumer aggregate whose web browser gate alone runs ~9 min; upstream calibrates the same jobs for 16-core enterprise pools. The hosted pnpm-store and Playwright caches that pull-request jobs restore also have no producer on a fork — the serial reference jobs that seed them are disabled (`if: false`, TODO(hosted-serial-ci)) — so every pull request additionally pays a cold install and a full Chromium download.
