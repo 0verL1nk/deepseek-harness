@@ -21,6 +21,7 @@ export type Mode =
   | 'ci-snapshot'
   | 'ci-artifacts'
   | 'ci-consumers'
+  | 'ci-consumers-pr'
   | 'ci-windows-blocking'
   | 'ci-windows-complete'
   | 'ci-windows-observational'
@@ -106,6 +107,7 @@ function parseMode(raw: string | undefined): Mode {
     case 'ci-snapshot':
     case 'ci-artifacts':
     case 'ci-consumers':
+    case 'ci-consumers-pr':
     case 'ci-windows-blocking':
     case 'ci-windows-complete':
     case 'ci-windows-observational':
@@ -115,7 +117,7 @@ function parseMode(raw: string | undefined): Mode {
       return raw
     default:
       throw new Error(
-        `run-gates: expected mode ci-primary | ci-linux-primary | ci-static | ci-lint-contracts-ready | ci-coverage | ci-snapshot | ci-artifacts | ci-consumers | ci-windows-blocking | ci-windows-complete | ci-windows-observational | node-compat | check-all | doc-sync, got ${JSON.stringify(raw)}.`,
+        `run-gates: expected mode ci-primary | ci-linux-primary | ci-static | ci-lint-contracts-ready | ci-coverage | ci-snapshot | ci-artifacts | ci-consumers | ci-consumers-pr | ci-windows-blocking | ci-windows-complete | ci-windows-observational | node-compat | check-all | doc-sync, got ${JSON.stringify(raw)}.`,
       )
   }
 }
@@ -132,7 +134,9 @@ export function defaultConcurrency(
   total: number,
   available = availableParallelism(),
 ): ConcurrencyDefault {
-  if (selectedMode === 'ci-consumers') return { workers: total, source: 'ci-consumers gate count' }
+  if (selectedMode === 'ci-consumers' || selectedMode === 'ci-consumers-pr') {
+    return { workers: total, source: 'ci-consumers gate count' }
+  }
   // Local modes cap workers: several doc gates each build a full ts.Program,
   // so an uncapped default on a large host trades wall clock for memory blowups.
   const localCap = selectedMode === 'check-all' || selectedMode === 'doc-sync'
@@ -209,7 +213,9 @@ export function gatesForMode(selected: Mode): Gate[] {
     case 'ci-artifacts':
       return ciArtifactGates()
     case 'ci-consumers':
-      return ciConsumerGates()
+      return ciConsumerGates({ webSnapshot: true })
+    case 'ci-consumers-pr':
+      return ciConsumerGates({ webSnapshot: false })
     case 'ci-windows-blocking':
       return ciWindowsBlockingGates()
     case 'ci-windows-complete':
@@ -384,7 +390,7 @@ function ciArtifactGates(): Gate[] {
   ]
 }
 
-function ciConsumerGates(): Gate[] {
+function ciConsumerGates(options: { webSnapshot: boolean }): Gate[] {
   const builtTree = ['build']
   const validatedBuild = ['built-package-invariants']
   return [
@@ -397,7 +403,10 @@ function ciConsumerGates(): Gate[] {
       needs: validatedBuild,
     }),
     snapshotGate(validatedBuild),
-    webSnapshotGate(validatedBuild),
+    // The PR tier drops the web browser gate — it is the one consumer gate whose
+    // Chromium replay costs more than every other gate combined on four-core
+    // runners, and the dispatched full run keeps enforcing it.
+    ...(options.webSnapshot ? [webSnapshotGate(validatedBuild)] : []),
     pnpmScript('doc-typecheck', 'doc-typecheck:contracts-ready', {
       needs: validatedBuild,
       env: { DSH_DOC_TYPECHECK_USE_BUILD_OUTPUT: '1' },

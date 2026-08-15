@@ -71,7 +71,7 @@ describe('CI workflow', () => {
     expect(windowsNative['runs-on']).toContain('dsh-win-ci')
     expect(windowsNative['runs-on']).toContain('dsh-windows-2025-16core')
     expect(windowsNative.name).toBe('windows node 24 / native complete')
-    expect(windowsNative.if).toBe("github.event_name == 'pull_request'")
+    expect(windowsNative.if).toBe("github.event_name == 'workflow_dispatch'")
     const nativeCommandSteps = (windowsNative.steps as unknown[]).filter((step): step is Record<string, unknown> & { run: string } => (
       isRecord(step) && typeof step.run === 'string'
     ))
@@ -89,6 +89,7 @@ describe('CI workflow', () => {
     // Aggregate: Wine `windows` required, native `windows-native` excluded.
     expect(aggregate.needs).toContain('windows')
     expect(aggregate.needs).not.toContain('windows-native')
+    expect(aggregate.needs).not.toContain('node-24-coverage')
     expect(aggregate.needs).not.toContain('serial-windows')
 
     // Linux failover is a separate switch: the three required Linux workers
@@ -133,8 +134,11 @@ describe('CI workflow', () => {
     }
 
     // What bounds the cost of exempting push: a master push may only carry the
-    // cache seeder and the two drills. Any job reachable on push would start
-    // accumulating uncancelled runs, so the set is pinned here.
+    // two cache seeders and the two drills. Any job reachable on push would
+    // start accumulating uncancelled runs, so the set is pinned here. The
+    // exhaustive-tier jobs (coverage, consumers, windows-native) stay
+    // push-excluded: a dispatch cancel-in-progress replaces them, so they must
+    // never land on the uncancelled push event.
     //
     // Classification is an exact allowlist of the conditions in use, not a
     // substring match: `github.event_name != 'pull_request'` mentions
@@ -143,6 +147,8 @@ describe('CI workflow', () => {
     const NOT_PUSH_REACHABLE = new Set([
       "github.event_name == 'pull_request'",
       "always() && github.event_name == 'pull_request'",
+      "github.event_name == 'workflow_dispatch'",
+      "github.event_name != 'push'",
       "github.event_name == 'workflow_dispatch' && inputs.suite == 'larger-runner-benchmark'",
       "github.event_name == 'workflow_dispatch' && inputs.suite == 'consolidated-runner-benchmark'",
     ])
@@ -156,7 +162,7 @@ describe('CI workflow', () => {
       })
       .map(([name]) => name)
       .sort()
-    expect(pushReachable).toEqual(['serial-linux-selfhosted', 'serial-windows', 'wine-apt-cache'])
+    expect(pushReachable).toEqual(['cache-producer', 'serial-linux-selfhosted', 'serial-windows', 'wine-apt-cache'])
 
     // Why workflow_dispatch must keep cancelling: each benchmark fans out to a
     // dozen larger runners at once, in this same group on master. If it stopped
@@ -170,6 +176,27 @@ describe('CI workflow', () => {
       expect(job.strategy['max-parallel']).toBe(12)
       expect(job['timeout-minutes']).toBe(15)
     }
+  })
+
+  it('keeps exhaustive gates off the pull-request critical path', () => {
+    const workflow = loadWorkflow('.github/workflows/ci.yml')
+    const coverage = workflowJob(workflow, 'node-24-coverage')
+    const consumers = workflowJob(workflow, 'node-24-consumers')
+    const aggregate = workflowJob(workflow, 'all-checks-passed')
+    if (!Array.isArray(aggregate.needs) || !Array.isArray(consumers.steps)) {
+      throw new TypeError('CI aggregate must define needs and consumers must define steps')
+    }
+
+    // Coverage is dispatch-only; consumers runs on every event except push,
+    // executing the web-browser-free PR aggregate on pull requests and the
+    // full aggregate (with the web browser gate) on dispatch.
+    expect(coverage.if).toBe("github.event_name == 'workflow_dispatch'")
+    expect(consumers.if).toBe("github.event_name != 'push'")
+    const consumerSteps = JSON.stringify(consumers.steps)
+    expect(consumerSteps).toContain('check:ci:consumers:pr')
+    expect(consumerSteps).toContain("github.event_name == 'pull_request' && 'pnpm run check:ci:consumers:pr'")
+    expect(consumerSteps).toContain("|| 'pnpm run check:ci:consumers'")
+    expect(aggregate.needs).not.toContain('node-24-coverage')
   })
 
   it('keeps supported LSP source under native Windows coverage', () => {
@@ -384,7 +411,7 @@ describe('Issue lifecycle workflow', () => {
     expect(lifecyclePullRequest.types).toContain('review_requested')
     expect(lifecycleReview.types).toEqual(['submitted'])
     expect(lifecycleJob.if).toBe(
-      "${{ github.event_name != 'pull_request_review' || (github.event.action == 'submitted' && github.event.review.state == 'changes_requested') }}",
+      "${{ github.repository == 'deepseek-harness/deepseek-harness' && (github.event_name != 'pull_request_review' || (github.event.action == 'submitted' && github.event.review.state == 'changes_requested')) }}",
     )
     expect(policyPullRequest.types).toContain('ready_for_review')
   })

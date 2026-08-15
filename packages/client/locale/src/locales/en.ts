@@ -26,4 +26,6 @@ export const en = {
   'unknown': 'Unknown',
   'none': 'None',
   'truncated': 'Truncated',
+  'window.minimize': 'Minimize window',
+  'window.maximize': 'Maximize window',
 } satisfies Record<CommonKey, string>
