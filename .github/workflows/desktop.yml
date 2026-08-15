@@ -183,7 +183,18 @@ jobs:
       - name: Create or update the GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
         run: |
-          gh release view "$TAG" >/dev/null 2>&1 || gh release create "$TAG" --generate-notes --title "$TAG"
-          gh release upload "$TAG" dist/desktop/* --clobber
+          # A tag whose version carries a prerelease suffix (dsh-v1.2.0-rc.1)
+          # publishes as a GitHub prerelease: electron-updater offers
+          # prereleases only to clients already running a prerelease version,
+          # so stable installations stay on the stable channel.
+          case "$TAG" in
+            dsh-v*-*) prerelease='--prerelease' ;;
+            *) prerelease='' ;;
+          esac
+          # This job checks out no repository — artifacts only — so `gh`
+          # cannot resolve the target from a git remote; name it explicitly.
+          gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1 || gh release create "$TAG" $prerelease --generate-notes --title "$TAG" --repo "$REPO"
+          gh release upload "$TAG" dist/desktop/* --clobber --repo "$REPO"

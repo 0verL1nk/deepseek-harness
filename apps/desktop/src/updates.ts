@@ -9,6 +9,10 @@ import { desktopCopy } from './i18n.ts'
 
 const { autoUpdater } = createRequire(import.meta.url)('electron-updater') as typeof import('electron-updater')
 
+// `console` satisfies electron-updater's Logger interface; the main-process
+// output is captured by Electron's `--enable-logging`.
+autoUpdater.logger = console
+
 const UPDATE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1_000
 
 /** Desktop UI owners needed to communicate update choices and progress. */
