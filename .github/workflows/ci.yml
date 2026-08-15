@@ -45,9 +45,12 @@ jobs:
   # TODO(hosted-serial-ci): Re-enable the three hosted serial reference jobs before release.
   # The self-hosted standby remains active on every master push.
 
-  # Three enterprise jobs isolate coverage, static analysis, and the
-  # build-backed consumer tail. The consumer job owns the only Linux build so
-  # all three jobs enter runner allocation independently.
+  # The pull-request tier keeps the fast product signal: static analysis and
+  # the build-backed consumer tail (snapshots, artifact checks, lint). The
+  # exhaustive tier — coverage, the full consumer aggregate with the web
+  # browser gate, and the native Windows inventory — runs on workflow_dispatch
+  # only, so pull-request wall time stays bounded on four-core fork runners
+  # while a manual full run remains one click away (and can target any branch).
   #
   # FAILOVER (Linux): each Linux enterprise job resolves its pool through the
   # DSH_CI_FAILOVER_LINUX repository variable. On the upstream repository,
@@ -116,8 +119,11 @@ jobs:
           DSH_ARCHIVE_BASE_REF: ${{ github.event.pull_request.base.sha }}
         run: pnpm run check:ci:static
 
+  # Exhaustive dispatch tier: per-file 100% coverage. Deliberately off the
+  # pull-request critical path — on four-core fork runners it alone runs
+  # longer than every required PR job combined.
   node-24-coverage:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: >-
       ${{ vars.DSH_CI_FAILOVER_LINUX == 'selfhosted'
           && github.event.pull_request.user.login != 'dependabot[bot]'
@@ -185,8 +191,10 @@ jobs:
       - name: Run exhaustive coverage
         run: pnpm run check:ci:coverage
 
+  # Pull requests run the consumer aggregate without the web browser gate;
+  # a workflow_dispatch run executes the full aggregate including it.
   node-24-consumers:
-    if: github.event_name == 'pull_request'
+    if: github.event_name != 'push'
     runs-on: >-
       ${{ vars.DSH_CI_FAILOVER_LINUX == 'selfhosted'
           && github.event.pull_request.user.login != 'dependabot[bot]'
@@ -275,7 +283,7 @@ jobs:
         run: pnpm --filter @deepseek-ai/dsh-web-frontend exec playwright install chromium
 
       - name: Run compatibility, snapshot, and artifact gates
-        run: pnpm run check:ci:consumers
+        run: ${{ github.event_name == 'pull_request' && 'pnpm run check:ci:consumers:pr' || 'pnpm run check:ci:consumers' }}
 
 
   node-compat:
@@ -458,18 +466,73 @@ jobs:
           cp /var/cache/apt/archives/*.deb "$HOME/wine-debs/"
           du -sh "$HOME/wine-debs"
 
-  # Every pull request also gets a real Windows-kernel signal. This job keeps
-  # its own unmasked conclusion but is deliberately absent from
-  # all-checks-passed.needs, so it never delays or changes that required
-  # verdict. Under normal operation it runs on the hosted larger runner; under
+  # Master seeds the pnpm store and Playwright Chromium caches in the
+  # default-branch scope that every pull-request job restores. The upstream
+  # serial reference jobs own that role; with them disabled (`if: false`
+  # pending TODO(hosted-serial-ci)), nothing produced those caches, so every
+  # pull request paid a cold install and a full Chromium download. This job
+  # runs no gates — install only — so it stays cheap.
+  cache-producer:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    name: master / cache warm
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+        with:
+          dest: ${{ runner.temp }}/setup-pnpm
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.PRIMARY_NODE_VERSION }}
+
+      - name: Configure pnpm store path
+        id: pnpm-store
+        run: |
+          store_root="$HOME/.local/share/pnpm/store"
+          echo "PNPM_CONFIG_STORE_DIR=$store_root" >> "$GITHUB_ENV"
+          store_path=$(PNPM_CONFIG_STORE_DIR="$store_root" pnpm store path --silent)
+          echo "path=$store_path" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.pnpm-store.outputs.path }}
+          key: ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-node-${{ env.PRIMARY_NODE_VERSION }}-pnpm-
+
+      # Same key and path the pull-request consumer job restores; produced
+      # here so PRs skip the Chromium download without re-running apt.
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install (immutable)
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm --filter @deepseek-ai/dsh-web-frontend exec playwright install chromium
+
+  # The complete native Windows inventory runs in the exhaustive dispatch tier
+  # only: on standard fork runners it is the slowest job of the workflow, and
+  # it was already absent from all-checks-passed.needs, so moving it off the
+  # pull-request event costs no required signal. Under normal operation it
+  # runs on the hosted larger runner; under
   # Windows failover (DSH_CI_FAILOVER_WINDOWS=selfhosted) it retargets onto the
   # in-house self-hosted Windows pool. Dependabot PRs are excluded from the
   # self-hosted pool and stay queued for the hosted runner — see the failover
   # runbook. This Windows switch is independent of the Linux
-  # DSH_CI_FAILOVER_LINUX variable that retargets the three required Linux jobs
+  # DSH_CI_FAILOVER_LINUX variable that retargets the required Linux jobs
   # and the all-checks-passed verdict above.
   windows-native:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: >-
       ${{ vars.DSH_CI_FAILOVER_WINDOWS == 'selfhosted'
           && github.event.pull_request.user.login != 'dependabot[bot]'
@@ -951,7 +1014,7 @@ jobs:
           && github.event.pull_request.user.login != 'dependabot[bot]'
           && fromJSON('["self-hosted", "linux", "x64", "vm-backup"]')
           || 'ubuntu-latest' }}
-    needs: [node-24, node-24-coverage, node-24-consumers, node-compat, python-sdk, python-runtime, windows]
+    needs: [node-24, node-24-consumers, node-compat, python-sdk, python-runtime, windows]
     if: always() && github.event_name == 'pull_request'
     steps:
       - name: Fail if any needed job did not succeed
