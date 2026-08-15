@@ -163,7 +163,15 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: dsh-desktop-${{ matrix.name }}
-          path: apps/desktop/dist/*
+          # Distributables and updater metadata only: the per-platform
+          # unpacked directories and builder-debug.yml are build scaffolding,
+          # and the release upload reads plain files, not directories.
+          path: |
+            apps/desktop/dist/*
+            !apps/desktop/dist/linux-unpacked
+            !apps/desktop/dist/win-unpacked
+            !apps/desktop/dist/mac
+            !apps/desktop/dist/builder-debug.yml
           if-no-files-found: error
           retention-days: 14
 
@@ -197,4 +205,6 @@ jobs:
           # This job checks out no repository — artifacts only — so `gh`
           # cannot resolve the target from a git remote; name it explicitly.
           gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1 || gh release create "$TAG" $prerelease --generate-notes --title "$TAG" --repo "$REPO"
-          gh release upload "$TAG" dist/desktop/* --clobber --repo "$REPO"
+          # Upload distributables one level under the merged artifacts; `find`
+          # keeps directories out even if an artifact regains scaffolding.
+          find dist/desktop -maxdepth 1 -type f -exec gh release upload "$TAG" {} --clobber --repo "$REPO" +
