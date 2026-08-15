@@ -183,6 +183,9 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - uses: actions/download-artifact@v4
         with:
           pattern: dsh-desktop-*
@@ -193,18 +196,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
-        run: |
-          # A tag whose version carries a prerelease suffix (dsh-v1.2.0-rc.1)
-          # publishes as a GitHub prerelease: electron-updater offers
-          # prereleases only to clients already running a prerelease version,
-          # so stable installations stay on the stable channel.
-          case "$TAG" in
-            dsh-v*-*) prerelease='--prerelease' ;;
-            *) prerelease='' ;;
-          esac
-          # This job checks out no repository — artifacts only — so `gh`
-          # cannot resolve the target from a git remote; name it explicitly.
-          gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1 || gh release create "$TAG" $prerelease --generate-notes --title "$TAG" --repo "$REPO"
-          # Upload distributables one level under the merged artifacts; `find`
-          # keeps directories out even if an artifact regains scaffolding.
-          find dist/desktop -maxdepth 1 -type f -exec gh release upload "$TAG" {} --clobber --repo "$REPO" +
+        run: bash scripts/publish-desktop-release.sh
