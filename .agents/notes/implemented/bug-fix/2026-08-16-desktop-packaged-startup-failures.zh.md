@@ -10,7 +10,7 @@ Status: implemented
 
 ## Decision
 
-desktop 包把 peer-only 运行时闭包声明为直接 `dependencies`,使打包后端解析到的每个模块无论经由哪种边到达都能在裁剪后保留。`files` 排除规则收窄为 `!node_modules/@deepseek-ai/*/src/**`,保持 npm 包 `src/` 形态的产物完整。`startBackend` 以 `execArgv: ['--expose-internals']` fork,vendored loader 接受它作为 internals 来源,而原生插件在 Electron 下无法提供。两道门禁让这一类问题响亮地回归而不是静默地回归:`pnpm --filter @deepseek-ai/dsh-desktop run boot-smoke` 以与 Electron 主进程完全相同的方式 fork 打包后端并要求就绪握手,[Desktop 工作流](../../../../.github/workflows/desktop.yml) 在每次 PR 检查和每个平台的发布构建中、在制品发布之前运行它。桌面归档将 `node_modules` 解包(`asarUnpack`),`healProfilesModuleFallback` 在链接目标位于 `app.asar` 归档内部且存在 `app.asar.unpacked` 孪生目录时改链到孪生目录,回退链接因此总是指向内核可以穿越的真实目录。后端启动失败消息现在会沿 `cause` 链展开 `AggregateError` 的子错误(前五条,带省略计数),坏掉的组合不再表现为一段无法解释的空白。发布通道策略:每个 `v*` 标签都发布为正式 Release——本分发只有一个稳定通道,预发布标记只会让已安装的客户端看不到新版本。
+desktop 包把 peer-only 运行时闭包声明为直接 `dependencies`,使打包后端解析到的每个模块无论经由哪种边到达都能在裁剪后保留。`files` 排除规则收窄为 `!node_modules/@deepseek-ai/*/src/**`,保持 npm 包 `src/` 形态的产物完整。`startBackend` 以 `execArgv: ['--expose-internals']` fork,vendored loader 接受它作为 internals 来源,而原生插件在 Electron 下无法提供。两道门禁让这一类问题响亮地回归而不是静默地回归:`pnpm --filter @deepseek-ai/dsh-desktop run boot-smoke` 以与 Electron 主进程完全相同的方式 fork 打包后端并要求就绪握手,[Desktop 工作流](../../../../.github/workflows/desktop.yml) 在每次 PR 检查和每个平台的发布构建中、在制品发布之前运行它。交叉编译的构建腿还需要外部架构的原生可选依赖:工作区为所有发布的平台与架构安装可选依赖(`pnpm-workspace.yaml` 的 `supportedArchitectures`),否则在 arm64 runner 上的 macOS x64 构建缺少 `@img/sharp-darwin-x64`,打包后端无法启动。桌面归档将 `node_modules` 解包(`asarUnpack`),`healProfilesModuleFallback` 在链接目标位于 `app.asar` 归档内部且存在 `app.asar.unpacked` 孪生目录时改链到孪生目录,回退链接因此总是指向内核可以穿越的真实目录。后端启动失败消息现在会沿 `cause` 链展开 `AggregateError` 的子错误(前五条,带省略计数),坏掉的组合不再表现为一段无法解释的空白。发布通道策略:每个 `v*` 标签都发布为正式 Release——本分发只有一个稳定通道,预发布标记只会让已安装的客户端看不到新版本。
 
 ## Alternatives considered
 

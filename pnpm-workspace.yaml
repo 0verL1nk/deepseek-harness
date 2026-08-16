@@ -24,6 +24,21 @@ packages:
 # builds must resolve those matching names to this workspace's pinned sources.
 linkWorkspacePackages: true
 
+# Optional native packages install for every platform the desktop app ships
+# (macOS x64 builds cross-compile on arm64 runners): without the foreign
+# architectures, sharp's darwin-x64 runtime is absent and the packaged
+# backend cannot start on Intel Macs.
+supportedArchitectures:
+  os:
+    - current
+    - darwin
+    - linux
+    - win32
+  cpu:
+    - current
+    - x64
+    - arm64
+
 overrides:
   '@deepseek-ai/cosmokit': 'link:vendor/cosmokit'
   '@deepseek-ai/schemastery': 'link:vendor/schemastery'
