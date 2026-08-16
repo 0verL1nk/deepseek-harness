@@ -54,8 +54,10 @@ const timeout = setTimeout(() => {
 }, 120_000)
 timeout.unref()
 
+let ready = false
 child.on('message', (message) => {
   if (message?.type === 'ready') {
+    ready = true
     clearTimeout(timeout)
     console.log(`boot-smoke: packaged backend ready on port ${String(message.port)}`)
     child.kill('SIGTERM')
@@ -67,7 +69,9 @@ child.on('message', (message) => {
   }
 })
 child.on('exit', (code, signal) => {
-  if (process.exitCode === 1 || signal === 'SIGTERM') return
+  // A post-readiness exit is the expected response to the stop signal,
+  // whatever code the platform's graceful shutdown settles on.
+  if (ready || process.exitCode === 1) return
   clearTimeout(timeout)
   console.error(`boot-smoke: packaged backend exited before readiness (code ${String(code)}, signal ${String(signal)})`)
   process.exitCode = 1
