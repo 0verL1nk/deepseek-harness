@@ -153,12 +153,12 @@ snapshot_and_install() {
     | while IFS= read -r -d '' file; do [ -e "$repo_root/$file" ] && printf '%s\0' "$file"; done \
     | tar -C "$repo_root" --null --files-from=- -cf - \
     | tar -C "$scratch/tree" -xf -
+  # supportedArchitectures stays whatever the workspace itself declares
+  # (the repo-wide set already covers win32-x64); re-declaring it here would
+  # duplicate the mapping key and abort the install.
   cat >> "$scratch/tree/pnpm-workspace.yaml" << 'EOF'
 
 nodeLinker: hoisted
-supportedArchitectures:
-  os: [current, win32]
-  cpu: [current, x64]
 EOF
   # The hoisted linker — used only by this lane — has an upstream rename
   # race (pnpm/pnpm#12880): parallel linkers staging a nested package copy

@@ -78,9 +78,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: macOS universal
+          - name: macOS arm64
             runner: macos-14
-            electron_args: --mac --universal --publish never
+            electron_args: --mac --arm64 --publish never
+          - name: macOS x64
+            runner: macos-14
+            electron_args: --mac --x64 --publish never
           - name: Windows x64
             runner: windows-2025
             electron_args: --win --x64 --publish never

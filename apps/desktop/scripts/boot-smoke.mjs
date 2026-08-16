@@ -6,26 +6,43 @@
  */
 
 import { fork } from 'node:child_process'
-import { existsSync, mkdtempSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
+import { join, resolve } from 'node:path'
 
 const root = resolve(import.meta.dirname, '..')
 
-/** Per-platform unpacked-application layout produced by `desktop:package`. */
-const layouts = {
-  win32: { executable: ['win-unpacked', 'deepseek-harness.exe'], resources: ['win-unpacked', 'resources'] },
-  linux: { executable: ['linux-unpacked', 'deepseek-harness'], resources: ['linux-unpacked', 'resources'] },
-  darwin: {
-    executable: ['mac', 'DeepSeek Harness.app', 'Contents', 'MacOS', 'deepseek-harness'],
-    resources: ['mac', 'DeepSeek Harness.app', 'Contents', 'Resources'],
-  },
+/** Locate the packaged unpacked application electron-builder produced. */
+function locatePackagedApp() {
+  const suffixes = {
+    win32: ['win-unpacked'],
+    linux: ['linux-unpacked'],
+    // electron-builder suffixes the mac output directory per architecture and
+    // names the bundle executable after the product, so both are discovered
+    // from the built tree instead of assumed.
+    darwin: ['mac', 'mac-arm64', 'mac_arm64', 'mac-x64'],
+  }[process.platform]
+  if (suffixes === undefined) throw new Error(`boot-smoke: unsupported platform ${process.platform}`)
+  const unpackedDir = suffixes.map(name => join(root, 'dist', name)).find(existsSync)
+  if (unpackedDir === undefined) {
+    const present = existsSync(join(root, 'dist'))
+      ? readdirSync(join(root, 'dist')).join(', ')
+      : 'nothing'
+    throw new Error(`boot-smoke: no packaged application under dist for ${process.platform} (dist holds: ${present}); run pnpm run desktop:package first`)
+  }
+  if (process.platform !== 'darwin') {
+    const executableName = process.platform === 'win32' ? 'deepseek-harness.exe' : 'deepseek-harness'
+    return { executable: join(unpackedDir, executableName), resources: join(unpackedDir, 'resources') }
+  }
+  const appBundle = readdirSync(unpackedDir).find(name => name.endsWith('.app'))
+  if (appBundle === undefined) throw new Error('boot-smoke: no .app bundle in the mac output directory')
+  const macosDir = join(unpackedDir, appBundle, 'Contents', 'MacOS')
+  const executable = readdirSync(macosDir).map(name => join(macosDir, name)).find(path => statSync(path).isFile())
+  if (executable === undefined) throw new Error(`boot-smoke: no executable inside ${macosDir}`)
+  return { executable, resources: join(unpackedDir, appBundle, 'Contents', 'Resources') }
 }
 
-const layout = layouts[process.platform]
-if (layout === undefined) throw new Error(`boot-smoke: unsupported platform ${process.platform}`)
-const executable = join(root, 'dist', ...layout.executable)
-const resources = join(root, 'dist', ...layout.resources)
+const { executable, resources } = locatePackagedApp()
 // Only the archive file itself is checkable here: reading paths inside
 // app.asar requires Electron's patched fs, which exists only in the forked
 // backend below.

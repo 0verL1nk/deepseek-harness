@@ -10,13 +10,15 @@ Status: implemented
 
 ## Decision
 
-desktop 包把 peer-only 运行时闭包声明为直接 `dependencies`,使打包后端解析到的每个模块无论经由哪种边到达都能在裁剪后保留。`files` 排除规则收窄为 `!node_modules/@deepseek-ai/*/src/**`,保持 npm 包 `src/` 形态的产物完整。`startBackend` 以 `execArgv: ['--expose-internals']` fork,vendored loader 接受它作为 internals 来源,而原生插件在 Electron 下无法提供。两道门禁让这一类问题响亮地回归而不是静默地回归:`pnpm --filter @deepseek-ai/dsh-desktop run boot-smoke` 以与 Electron 主进程完全相同的方式 fork 打包后端并要求就绪握手,[Desktop 工作流](../../../../.github/workflows/desktop.yml) 在每次 PR 检查和每个平台的发布构建中、在制品发布之前运行它。桌面归档将 `node_modules` 解包(`asarUnpack`),`healProfilesModuleFallback` 在链接目标位于 `app.asar` 归档内部且存在 `app.asar.unpacked` 孪生目录时改链到孪生目录,回退链接因此总是指向内核可以穿越的真实目录。后端启动失败消息现在会沿 `cause` 链展开 `AggregateError` 的子错误(前五条,带省略计数),坏掉的组合不再表现为一段无法解释的空白。发布通道策略:每个 `v*` 标签都发布为正式 Release——本分发只有一个稳定通道,预发布标记只会让已安装的客户端看不到新版本。
+desktop 包把 peer-only 运行时闭包声明为直接 `dependencies`,使打包后端解析到的每个模块无论经由哪种边到达都能在裁剪后保留。`files` 排除规则收窄为 `!node_modules/@deepseek-ai/*/src/**`,保持 npm 包 `src/` 形态的产物完整。`startBackend` 以 `execArgv: ['--expose-internals']` fork,vendored loader 接受它作为 internals 来源,而原生插件在 Electron 下无法提供。两道门禁让这一类问题响亮地回归而不是静默地回归:`pnpm --filter @deepseek-ai/dsh-desktop run boot-smoke` 以与 Electron 主进程完全相同的方式 fork 打包后端并要求就绪握手,[Desktop 工作流](../../../../.github/workflows/desktop.yml) 在每次 PR 检查和每个平台的发布构建中、在制品发布之前运行它。交叉编译的构建腿还需要外部架构的原生可选依赖:工作区为所有发布的平台与架构安装可选依赖(`pnpm-workspace.yaml` 的 `supportedArchitectures`),否则在 arm64 runner 上的 macOS x64 构建缺少 `@img/sharp-darwin-x64`,打包后端无法启动。桌面归档将 `node_modules` 解包(`asarUnpack`),`healProfilesModuleFallback` 在链接目标位于 `app.asar` 归档内部且存在 `app.asar.unpacked` 孪生目录时改链到孪生目录,回退链接因此总是指向内核可以穿越的真实目录。后端启动失败消息现在会沿 `cause` 链展开 `AggregateError` 的子错误(前五条,带省略计数),坏掉的组合不再表现为一段无法解释的空白。发布通道策略:每个 `v*` 标签都发布为正式 Release——本分发只有一个稳定通道,预发布标记只会让已安装的客户端看不到新版本。
 
 ## Alternatives considered
 
 **用 tsdown 打包整个运行时(仅 `electron` 外部化)。** 否决:cordis Loader 在运行时按包名从组合后的 profile 导入插件条目,静态打包表达不了组合;原生模块和 `electron-updater` 仍需要 unpacked `node_modules` 处理。
 
 **从组合文件生成闭包清单。** 否决其作为主机制:运行时集合还取决于 `profile-boot` 内部的动态挂载(timer、只监视 HMR)以及未来每个插件自己的 peer 边,静态生成器一个都看不见。boot smoke 观察的是真实组合,那才是要紧的不变量;已声明的清单是修复手段,不是探测器。
+
+**发布一个 macOS universal 构建。** 否决:`@electron/universal` 合并两个单架构归档时会把每个解包文件的路径拼进同一个花括号模式,运行时依赖树整体解包后该模式超出 minimatch 的长度上限。按架构区分的 macOS 构建完全绕开合并器。
 
 **为桌面表面压制只监视 HMR 挂载。** 否决:那会静默破坏向桌面用户承诺的 `cordis.patch.yml` 实时重载契约;传一个 flag 没有任何代价,并让该表面与所有其他 `dsh` 宿主走同一条路径。
 
