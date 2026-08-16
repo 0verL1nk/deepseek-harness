@@ -18,6 +18,8 @@ The desktop package declares the peer-only runtime closure as direct `dependenci
 
 **Generate the closure list from the composition files.** Rejected as the primary mechanism: the runtime set also depends on dynamic mounts inside `profile-boot` (timer, watch-only HMR) and on every future plugin's own peer edges, none of which a static generator can see. The boot smoke observes the real composition, which is the invariant that matters; the declared list is the fix, not the detector.
 
+**Ship one macOS universal build.** Rejected: `@electron/universal` merges the two single-arch archives by joining every unpacked file path into one brace pattern, and with the runtime tree unpacked that pattern exceeds minimatch's length limit. Per-architecture macOS builds sidestep the merger entirely.
+
 **Suppress the watch-only HMR mount for the desktop surface.** Rejected: it would silently break the documented live `cordis.patch.yml` reload contract for desktop users; passing the flag costs nothing and keeps the surface on the same path as every other `dsh` host.
 
 ## Consequences

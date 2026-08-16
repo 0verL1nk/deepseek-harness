@@ -18,6 +18,8 @@ desktop 包把 peer-only 运行时闭包声明为直接 `dependencies`,使打包
 
 **从组合文件生成闭包清单。** 否决其作为主机制:运行时集合还取决于 `profile-boot` 内部的动态挂载(timer、只监视 HMR)以及未来每个插件自己的 peer 边,静态生成器一个都看不见。boot smoke 观察的是真实组合,那才是要紧的不变量;已声明的清单是修复手段,不是探测器。
 
+**发布一个 macOS universal 构建。** 否决:`@electron/universal` 合并两个单架构归档时会把每个解包文件的路径拼进同一个花括号模式,运行时依赖树整体解包后该模式超出 minimatch 的长度上限。按架构区分的 macOS 构建完全绕开合并器。
+
 **为桌面表面压制只监视 HMR 挂载。** 否决:那会静默破坏向桌面用户承诺的 `cordis.patch.yml` 实时重载契约;传一个 flag 没有任何代价,并让该表面与所有其他 `dsh` 宿主走同一条路径。
 
 ## Consequences
