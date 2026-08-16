@@ -14,9 +14,11 @@ DeepSeek Harness 桌面应用。Electron 在隔离的本地子进程中承载现
 
 ## 分发
 
-在执行 `pnpm run build` 后，`pnpm run desktop:package` 会构建未打包的本地应用。`pnpm run desktop:make` 会生成平台分发包：macOS DMG 和 ZIP、Windows NSIS、Linux AppImage 和 DEB。[Desktop 工作流](../../.github/workflows/desktop.yml) 会从 `dsh-vX.Y.Z` 标签为 macOS universal、Windows x64 和 Linux x64 构建原生制品，并把它们附加到对应的 GitHub Release。它会从标签派生标准 SemVer `X.Y.Z`（可带预发布后缀）作为安装应用版本。
+在执行 `pnpm run build` 后，`pnpm run desktop:package` 会构建未打包的本地应用，`pnpm --filter @deepseek-ai/dsh-desktop run boot-smoke` 会 fork 打包产物中的后端并要求其就绪握手——这一打包门禁证明裁剪后的依赖集真能启动本地 web host。`pnpm run desktop:make` 会生成平台分发包：macOS DMG 和 ZIP、Windows NSIS、Linux AppImage 和 DEB。[Desktop 工作流](../../.github/workflows/desktop.yml) 会从 `vX.Y.Z` 标签（桌面应用独立于其捆绑的 dsh 内核进行版本管理）为 macOS universal、Windows x64 和 Linux x64 构建原生制品，并把它们附加到对应的 GitHub Release。它会从标签派生标准 SemVer `X.Y.Z`（可带预发布后缀）作为安装应用版本。
 
-发布工作流支持使用 `DESKTOP_CSC_LINK`、`DESKTOP_CSC_KEY_PASSWORD`、`DESKTOP_APPLE_ID`、`DESKTOP_APPLE_APP_SPECIFIC_PASSWORD` 和 `DESKTOP_APPLE_TEAM_ID` GitHub secrets 进行签名和 macOS 公证。它会在构建时把当前 GitHub 仓库 owner 和名称注入更新元数据，因此 fork 发布的版本会检查该 fork 的 GitHub Release。macOS 自动更新需要已签名的构建。版本带预发布后缀的标签会发布为 GitHub prerelease；electron-updater 只向已运行预发布版本的客户端提供预发布更新，稳定安装因此保持在稳定通道。
+应用的运行时依赖集是 web profile 的完整组合。electron-builder 只按它能遍历的依赖图裁剪 `node_modules`，而 harness 各包之间通过 `peerDependencies` 相互引用，因此仅经由 peer 边可达的包——vendored 的 `cordis-plugin-group` 以及其他插件以 peer 方式引用的 dsh 服务包————覆盖组合在每个平台门控变体下的集合——必须声明为本包的直接依赖才能在裁剪后保留。Desktop 工作流在发布前会启动各平台的打包后端，组合变化超出已声明集合时构建会失败，而不是发布一个装不上就崩的版本。
+
+发布工作流支持使用 `DESKTOP_CSC_LINK`、`DESKTOP_CSC_KEY_PASSWORD`、`DESKTOP_APPLE_ID`、`DESKTOP_APPLE_APP_SPECIFIC_PASSWORD` 和 `DESKTOP_APPLE_TEAM_ID` GitHub secrets 进行签名和 macOS 公证。它会在构建时把当前 GitHub 仓库 owner 和名称注入更新元数据，因此 fork 发布的版本会检查该 fork 的 GitHub Release。macOS 自动更新需要已签名的构建。本分发把每个 `v*` 标签都发布为正式 Release：只有单一稳定通道，预发布门槛只会让已安装的客户端看不到新版本。
 
 ## 安全性
 

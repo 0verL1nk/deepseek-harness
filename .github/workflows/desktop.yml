@@ -1,6 +1,8 @@
 # Build the Electron distribution on the operating system it targets. A local
 # package check runs for every pull request; signed installers and archives
-# publish only from a dsh release tag.
+# publish only from a desktop release tag. The desktop application carries its
+# own version line (vX.Y.Z); the bundled dsh core keeps the workspace
+# version.
 name: Desktop
 
 on:
@@ -18,7 +20,7 @@ on:
       - 'tsdown.config.ts'
       - '.github/workflows/desktop.yml'
   push:
-    tags: ['dsh-v*']
+    tags: ['v*']
   workflow_dispatch:
 
 permissions:
@@ -64,6 +66,9 @@ jobs:
         run: pnpm run desktop:verify
       - name: Package Linux application directory
         run: pnpm run desktop:package
+
+      - name: Boot the packaged backend
+        run: pnpm --filter @deepseek-ai/dsh-desktop run boot-smoke
 
   build:
     name: ${{ matrix.name }}
@@ -122,10 +127,10 @@ jobs:
       - name: Build desktop inputs
         run: pnpm run build
       - name: Resolve desktop release version
-        if: startsWith(github.ref, 'refs/tags/dsh-v')
+        if: startsWith(github.ref, 'refs/tags/v')
         shell: bash
         run: |
-          version="${GITHUB_REF_NAME#dsh-v}"
+          version="${GITHUB_REF_NAME#v}"
           VERSION="$version" node -e "if (!/^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-(?:0|[1-9]\\d*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*)(?:\\.(?:0|[1-9]\\d*|[0-9A-Za-z-]*[A-Za-z-][0-9A-Za-z-]*))*)?$/.test(process.env.VERSION)) process.exitCode = 1"
           echo "DESKTOP_RELEASE_VERSION=$version" >> "$GITHUB_ENV"
       - name: Verify Electron package configuration
@@ -160,6 +165,11 @@ jobs:
       - name: Report distributable sizes
         shell: pwsh
         run: Get-ChildItem apps/desktop/dist -File | Sort-Object Length -Descending | Select-Object Name, @{ Name = 'MiB'; Expression = { [math]::Round($_.Length / 1MB, 1) } } | Format-Table -AutoSize
+
+      # Prove this platform's pruned dependency set starts the web host
+      # before the artifacts are published as updatable releases.
+      - name: Boot the packaged backend
+        run: pnpm --filter @deepseek-ai/dsh-desktop run boot-smoke
       - uses: actions/upload-artifact@v4
         with:
           name: dsh-desktop-${{ matrix.name }}
@@ -177,7 +187,7 @@ jobs:
 
   release:
     name: Publish desktop release assets
-    if: startsWith(github.ref, 'refs/tags/dsh-v')
+    if: startsWith(github.ref, 'refs/tags/v')
     needs: build
     runs-on: ubuntu-24.04
     permissions:

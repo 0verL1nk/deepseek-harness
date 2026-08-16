@@ -246,6 +246,31 @@ describe('healProfilesModuleFallback', () => {
     expect(() => { healProfilesModuleFallback(anchor, home) }).toThrow('is not a symlink')
   })
 
+  it('links the unpacked twin when the resolved package sits inside an app.asar archive', () => {
+    // A packaged Electron installation resolves packages through a directory
+    // literally named app.asar; the kernel cannot traverse a symlink into the
+    // real archive, so the link must target the app.asar.unpacked twin.
+    const root = tmp()
+    const archiveApp = join(root, 'resources', 'app.asar', 'app')
+    mkdirSync(join(archiveApp, 'node_modules', 'bundle-a'), { recursive: true })
+    writeFileSync(join(archiveApp, 'node_modules', 'bundle-a', 'package.json'), JSON.stringify({ name: 'bundle-a', version: '0.0.0' }))
+    writeFileSync(join(archiveApp, 'package.json'), JSON.stringify({ name: 'dsh-app', dependencies: { 'bundle-a': '0.0.0' } }))
+    const twinPackage = join(root, 'resources', 'app.asar.unpacked', 'app', 'node_modules', 'bundle-a')
+    mkdirSync(twinPackage, { recursive: true })
+    writeFileSync(join(twinPackage, 'package.json'), JSON.stringify({ name: 'bundle-a', version: '0.0.0' }))
+    // A second package with no twin keeps its archive path.
+    mkdirSync(join(archiveApp, 'node_modules', 'bundle-b'), { recursive: true })
+    writeFileSync(join(archiveApp, 'node_modules', 'bundle-b', 'package.json'), JSON.stringify({ name: 'bundle-b', version: '0.0.0' }))
+    const appManifest = JSON.parse(readFileSync(join(archiveApp, 'package.json'), 'utf8')) as { dependencies: Record<string, string> }
+    appManifest.dependencies['bundle-b'] = '0.0.0'
+    writeFileSync(join(archiveApp, 'package.json'), JSON.stringify(appManifest))
+    const home = tmp()
+    healProfilesModuleFallback(join(archiveApp, 'package.json'), home)
+    const fallback = join(home, 'profiles', 'node_modules')
+    expect(readlinkSync(join(fallback, 'bundle-a'))).toContain(join('app.asar.unpacked', 'app', 'node_modules', 'bundle-a'))
+    expect(readlinkSync(join(fallback, 'bundle-b'))).toContain(join('app.asar', 'app', 'node_modules', 'bundle-b'))
+  })
+
   it('replaces a wrong symlink', () => {
     const anchor = stageInstallation({})
     const home = tmp()

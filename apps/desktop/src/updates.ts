@@ -58,6 +58,9 @@ export function startAutomaticUpdates(ui: UpdateUi): void {
   }
   autoUpdater.autoInstallOnAppQuit = true
   autoUpdater.autoDownload = false
+  // Update-check diagnostics land in the main-process console; there is no
+  // file logger to keep the packaged footprint dependency-free.
+  autoUpdater.logger = console
   autoUpdater.on('update-available', (info) => {
     void (async () => {
       const text = desktopCopy(ui.locale())
