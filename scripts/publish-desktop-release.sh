@@ -4,18 +4,13 @@
 # in the environment; it passes no command-line arguments.
 set -euo pipefail
 
-# A tag whose version carries a prerelease suffix (dsh-v1.2.0-rc.1) publishes
-# as a GitHub prerelease: electron-updater offers prereleases only to clients
-# already running a prerelease version, so stable installations stay on the
-# stable channel.
-case "$TAG" in
-  dsh-v*-*) prerelease='--prerelease' ;;
-  *) prerelease='' ;;
-esac
+# Every v* tag publishes as a regular release on the stable channel:
+# this distribution has a single channel, so prerelease gating would only
+# hide releases from clients.
 
 # The release job otherwise resolves the repository from the artifact-free
 # workspace only; name it explicitly.
-gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1 || gh release create "$TAG" $prerelease --generate-notes --title "$TAG" --repo "$REPO"
+gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1 || gh release create "$TAG" --generate-notes --title "$TAG" --repo "$REPO"
 
 # Upload the distributables one level under the merged artifacts; the -f test
 # keeps directories out even if an artifact regains scaffolding, and a zero

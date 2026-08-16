@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-desktop",
   "description": "DeepSeek Harness desktop application: an Electron shell over the local dsh web profile",
-  "version": "0.1.0-rc.5",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "main": "lib/main.js",
@@ -11,10 +11,26 @@
   "scripts": {
     "package": "electron-builder --config electron-builder.config.mjs --dir",
     "make": "electron-builder --config electron-builder.config.mjs",
-    "verify": "node ./scripts/verify-desktop.mjs"
+    "verify": "node ./scripts/verify-desktop.mjs",
+    "boot-smoke": "node ./scripts/boot-smoke.mjs"
   },
   "dependencies": {
+    "@deepseek-ai/cordis-plugin-group": "workspace:^",
     "@deepseek-ai/dsh": "workspace:^",
+    "@deepseek-ai/dsh-anonymous-user-id": "workspace:^",
+    "@deepseek-ai/dsh-atomic-write": "workspace:^",
+    "@deepseek-ai/dsh-code-runtime": "workspace:^",
+    "@deepseek-ai/dsh-fs": "workspace:^",
+    "@deepseek-ai/dsh-output-retention": "workspace:^",
+    "@deepseek-ai/dsh-sandbox": "workspace:^",
+    "@deepseek-ai/dsh-scope": "workspace:^",
+    "@deepseek-ai/dsh-session-telemetry": "workspace:^",
+    "@deepseek-ai/dsh-session-title-llm": "workspace:^",
+    "@deepseek-ai/dsh-shell": "workspace:^",
+    "@deepseek-ai/dsh-spill": "workspace:^",
+    "@deepseek-ai/dsh-subagent-in-process-driver": "workspace:^",
+    "@deepseek-ai/dsh-subprocess": "workspace:^",
+    "@deepseek-ai/dsh-timeout": "workspace:^",
     "electron-updater": "^6.7.3"
   },
   "devDependencies": {

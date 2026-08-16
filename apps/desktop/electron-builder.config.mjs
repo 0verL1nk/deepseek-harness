@@ -36,7 +36,11 @@ export default {
     'lib/**/*.js',
     'package.json',
     '!**/*.map',
-    '!node_modules/**/src/**',
+    // Workspace TS sources are dead weight (lib/ ships the runtime), but the
+    // negation must stay scoped: npm packages whose built output lives under
+    // a src/ directory (koffi, @opentelemetry's build/src CJS trees) break
+    // when excluded.
+    '!node_modules/@deepseek-ai/*/src/**',
     '!node_modules/**/*.d.ts',
     '!node_modules/**/*.d.mts',
     '!node_modules/**/*.{md,markdown,ts,tsx}',

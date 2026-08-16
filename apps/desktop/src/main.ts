@@ -97,7 +97,11 @@ async function startBackend(): Promise<string> {
   return await new Promise<string>((resolve, reject) => {
     const child = fork(backendEntry(), [], {
       execPath: process.execPath,
-      execArgv: [],
+      // The watch-only HMR instance the profile boot mounts reads Node loader
+      // internals. The native require-builtin fallback that plain-Node dsh
+      // processes use cannot read Electron's V8 realm layout, so the flag is
+      // the only supported internals source under ELECTRON_RUN_AS_NODE.
+      execArgv: ['--expose-internals'],
       env: {
         ...process.env,
         ELECTRON_RUN_AS_NODE: '1',
