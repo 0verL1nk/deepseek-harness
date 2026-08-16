@@ -20,6 +20,10 @@ export default {
   artifactName: 'DeepSeek-Harness-${version}-${os}-${arch}.${ext}',
   extraMetadata: { version },
   asar: true,
+  // The runtime dependency tree must stay real on disk: the profile module
+  // fallback symlinks into it, and symlink traversal happens in the kernel,
+  // below Electron's archive interception. `lib/` stays archived.
+  asarUnpack: ['node_modules/**'],
   extraResources: [{
     from: '../web/public/favicon.svg',
     to: 'favicon.svg',

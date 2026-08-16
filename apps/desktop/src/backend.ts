@@ -40,7 +40,7 @@ function describe(error: unknown): string {
     if (current === undefined || seen.has(current)) continue
     seen.add(current)
     if (current instanceof AggregateError) {
-      queue.push(...current.errors)
+      for (const cause of current.errors as unknown[]) queue.push(cause)
     } else if (current instanceof Error) {
       if (current.message !== '') messages.push(current.message)
       if (current.cause !== undefined) queue.push(current.cause)

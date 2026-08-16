@@ -250,8 +250,23 @@ export function healProfilesModuleFallback(installAnchor: string, home: string =
   for (const [packageName, target] of links) {
     const link = join(modulesDir, packageName)
     mkdirSync(dirname(link), { recursive: true })
-    ensureSymlink(link, target)
+    ensureSymlink(link, unpackedArchiveTarget(target))
   }
+}
+
+/**
+ * Resolve a link target the operating system can traverse. A packaged
+ * Electron installation resolves packages inside an `app.asar` archive, but
+ * symlink traversal happens in the kernel, below Electron's archive
+ * interception, and the kernel cannot enter an archive file. Such
+ * installations unpack the runtime dependency tree beside the archive as
+ * `app.asar.unpacked`; link that real directory instead when it exists.
+ * @param target - a resolved package directory, possibly inside an archive.
+ * @returns a real directory path.
+ */
+function unpackedArchiveTarget(target: string): string {
+  const unpacked = target.replace(/([/\\])app\.asar([/\\])/, '$1app.asar.unpacked$2')
+  return unpacked !== target && existsSync(unpacked) ? unpacked : target
 }
 
 /**
