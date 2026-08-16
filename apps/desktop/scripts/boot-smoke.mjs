@@ -25,8 +25,13 @@ const layouts = {
 const layout = layouts[process.platform]
 if (layout === undefined) throw new Error(`boot-smoke: unsupported platform ${process.platform}`)
 const executable = join(root, 'dist', ...layout.executable)
-const backendEntry = join(root, 'dist', ...layout.resources, 'app.asar', 'lib', 'backend.js')
-for (const path of [executable, backendEntry]) {
+const resources = join(root, 'dist', ...layout.resources)
+// Only the archive file itself is checkable here: reading paths inside
+// app.asar requires Electron's patched fs, which exists only in the forked
+// backend below.
+const archive = join(resources, 'app.asar')
+const backendEntry = join(archive, 'lib', 'backend.js')
+for (const path of [executable, archive]) {
   if (!existsSync(path)) throw new Error(`boot-smoke: ${path} is missing; run pnpm run desktop:package first`)
 }
 
