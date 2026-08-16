@@ -10,4 +10,9 @@ export default defineConfig({
   fixedExtension: false,
   dts: false,
   clean: false,
+  // The `electron` specifier must reach the runtime: Electron's main process
+  // intercepts it to serve the built-in API, while bundling would inline the
+  // npm path-shim package whose CommonJS `__dirname` access crashes the ES
+  // module chunk at first import.
+  external: ['electron'],
 })
